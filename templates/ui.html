@@ -1,0 +1,830 @@
+curl http://localhost:5001/health<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Multimodal Media Analysis · Web UI</title>
+  <style>
+    :root {
+      --bg:       #0a0015;
+      --panel:    #1a001a;
+      --panel-2:  #2d0d3d;
+      --border:   #ff006e;
+      --fg:       #00ffff;
+      --muted:    #8b008b;
+      --accent:   #00ff41;
+      --accent-2: #ff006e;
+      --accent-3: #00ffff;
+      --danger:   #ff0055;
+      --radius:   10px;
+      --shadow:   0 0 20px rgba(0,255,255,0.5), 0 0 40px rgba(255,0,110,0.3);
+      --mono:     ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+      --sans:     -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: var(--sans);
+      line-height: 1.5;
+      min-height: 100vh;
+      text-shadow: 0 0 10px rgba(0,255,255,0.3);
+    }
+    a { color: var(--accent); text-shadow: 0 0 8px rgba(0,255,65,0.6); }
+
+    .container {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 32px 24px 80px;
+    }
+    .page-shell {
+      display: grid;
+      grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+      gap: 28px;
+      align-items: start;
+    }
+    .robot-rail {
+      position: sticky;
+      top: 24px;
+      align-self: start;
+      padding-top: 8px;
+    }
+    .robot-rail img {
+      width: 100%;
+      max-width: 360px;
+      display: block;
+      filter: drop-shadow(0 0 18px rgba(0,255,255,0.42)) drop-shadow(0 0 28px rgba(255,0,110,0.3));
+    }
+    .robot-caption {
+      margin-top: 14px;
+      padding: 0 6px;
+      color: var(--accent-3);
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.6;
+      text-shadow: 0 0 8px rgba(0,255,255,0.25);
+    }
+    .robot-caption strong {
+      color: var(--accent);
+    }
+    .robot-models {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border: 1px solid var(--accent-2);
+      border-radius: 8px;
+      background: rgba(255,0,110,0.08);
+      box-shadow: 0 0 14px rgba(255,0,110,0.18);
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.55;
+      color: var(--accent-3);
+    }
+    .robot-models .title {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--accent);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .robot-models ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .robot-models li {
+      margin: 0 0 6px;
+    }
+    .robot-models li:last-child {
+      margin-bottom: 0;
+    }
+    .robot-models .model {
+      color: var(--accent-2);
+    }
+    .main-column {
+      min-width: 0;
+    }
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 16px;
+      padding-bottom: 24px;
+      border-bottom: 2px solid var(--accent-2);
+      box-shadow: 0 0 20px rgba(255,0,110,0.4);
+    }
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      min-width: 0;
+      margin-right: auto;
+    }
+    header h1 {
+      margin: 0; font-size: 22px; font-weight: 600;
+      color: var(--accent);
+      text-shadow: 0 0 15px rgba(0,255,65,0.8), 0 0 30px rgba(0,255,65,0.4);
+    }
+    header .subtitle {
+      color: var(--accent-2); font-size: 13px;
+      font-family: var(--mono);
+      text-shadow: 0 0 8px rgba(255,0,110,0.4);
+    }
+    .api-badge {
+      font-family: var(--mono); font-size: 12px;
+      padding: 4px 10px; border: 1px solid var(--border);
+      border-radius: 999px; color: var(--muted);
+      box-shadow: 0 0 10px rgba(255,0,110,0.4);
+    }
+    .api-badge.ok    { color: var(--accent); border-color: var(--accent); box-shadow: 0 0 12px rgba(0,255,65,0.6); }
+    .api-badge.fail  { color: var(--danger); border-color: var(--danger); box-shadow: 0 0 12px rgba(255,0,85,0.6); }
+
+    .uploader {
+      margin-top: 28px;
+      background: var(--panel);
+      border: 2px solid var(--accent-2);
+      border-radius: var(--radius);
+      box-shadow: 0 0 30px rgba(255,0,110,0.5), inset 0 0 20px rgba(255,0,110,0.1);
+      padding: 24px;
+    }
+    .dropzone {
+      border: 2px dashed var(--accent-3);
+      border-radius: var(--radius);
+      padding: 56px 24px;
+      text-align: center;
+      transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
+      cursor: pointer;
+      background: var(--panel-2);
+      box-shadow: inset 0 0 15px rgba(0,255,255,0.1);
+    }
+    .dropzone:hover, .dropzone.drag {
+      border-color: var(--accent);
+      background: rgba(0, 255, 65, 0.08);
+      box-shadow: 0 0 25px rgba(0,255,65,0.4), inset 0 0 20px rgba(0,255,65,0.15);
+    }
+    .dropzone .big {
+      font-size: 18px; margin-bottom: 6px; color: var(--fg);
+      text-shadow: 0 0 12px rgba(0,255,255,0.5);
+    }
+    .dropzone .small {
+      font-size: 13px; color: var(--accent-2);
+      text-shadow: 0 0 8px rgba(255,0,110,0.3);
+    }
+    .dropzone input[type=file] { display: none; }
+
+    .selected-file {
+      margin-top: 14px; font-family: var(--mono); font-size: 13px;
+      color: var(--accent-2);
+      text-shadow: 0 0 6px rgba(255,0,110,0.3);
+    }
+    .selected-file b { color: var(--accent); text-shadow: 0 0 8px rgba(0,255,65,0.5); }
+
+    /* ── Options ── */
+    .options {
+      margin-top: 20px; display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px 16px;
+    }
+    .opt {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 12px; background: var(--panel-2);
+      border: 1px solid var(--accent-2); border-radius: 8px;
+      font-size: 13px;
+      box-shadow: 0 0 10px rgba(255,0,110,0.2);
+    }
+    .opt label { cursor: pointer; user-select: none; }
+    .opt input[type=number] {
+      width: 60px; background: transparent; color: var(--accent);
+      border: 1px solid var(--accent-3); border-radius: 4px;
+      padding: 2px 6px; font-family: var(--mono); font-size: 12px;
+      box-shadow: 0 0 8px rgba(0,255,255,0.2);
+      text-shadow: 0 0 4px rgba(0,255,255,0.3);
+    }
+    .opt input[type=checkbox] { accent-color: var(--accent); }
+    .face-tune-btn {
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--accent-3);
+      background: transparent;
+      color: var(--accent-3);
+      font-family: var(--mono);
+      font-size: 12px;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(0,255,255,0.18);
+    }
+    .face-tune-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      box-shadow: 0 0 14px rgba(0,255,65,0.28);
+    }
+
+    .actions { margin-top: 18px; display: flex; gap: 12px; flex-wrap: wrap; }
+    .btn {
+      font-family: var(--sans); font-size: 14px; font-weight: 600;
+      padding: 11px 20px; border-radius: 8px; border: none;
+      cursor: pointer; transition: transform 100ms, opacity 100ms;
+    }
+    .btn-primary {
+      background: var(--accent); color: var(--bg);
+      box-shadow: 0 0 20px rgba(0,255,65,0.6);
+      border: 1px solid var(--accent);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 30px rgba(0,255,65,0.8), 0 0 60px rgba(0,255,65,0.4); }
+    .btn-primary:disabled {
+      opacity: 0.5; cursor: not-allowed; transform: none;
+      box-shadow: 0 0 10px rgba(0,255,65,0.2);
+    }
+    .btn-ghost {
+      background: transparent; color: var(--accent-2);
+      border: 1px solid var(--accent-2);
+      box-shadow: 0 0 10px rgba(255,0,110,0.3);
+    }
+    .btn-ghost:hover { color: var(--accent-2); border-color: var(--accent-2); box-shadow: 0 0 20px rgba(255,0,110,0.6); }
+
+    /* ── Progress ── */
+    .progress-card { margin-top: 24px; display: none; }
+    .progress-card.active { display: block; }
+    .progress-card .bar {
+      width: 100%; height: 6px; background: var(--panel-2);
+      border-radius: 99px; overflow: hidden; margin-top: 12px;
+      border: 1px solid var(--accent-3);
+      box-shadow: inset 0 0 10px rgba(0,255,255,0.2);
+    }
+    .progress-card .fill {
+      height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-3));
+      width: 0%;
+      animation: indeterminate 1.6s ease-in-out infinite;
+      box-shadow: 0 0 20px rgba(0,255,65,0.8), inset 0 0 10px rgba(0,255,255,0.6);
+    }
+    @keyframes indeterminate {
+      0%   { width: 5%;  margin-left: 0%; }
+      50%  { width: 60%; margin-left: 20%; }
+      100% { width: 5%;  margin-left: 95%; }
+    }
+    
+    @keyframes neon-pulse {
+      0%, 100% { opacity: 0.8; text-shadow: 0 0 10px rgba(0,255,65,0.5); }
+      50% { opacity: 1; text-shadow: 0 0 20px rgba(0,255,65,0.8); }
+    }
+    .progress-card .stages {
+      margin-top: 14px; font-family: var(--mono); font-size: 12px; color: var(--muted);
+    }
+    .progress-card .stages span {
+      display: inline-block; margin-right: 12px;
+      padding: 2px 8px; border: 1px solid var(--accent-2); border-radius: 99px;
+      box-shadow: 0 0 8px rgba(255,0,110,0.3);
+    }
+    .progress-card .stages span.done { color: var(--accent); border-color: var(--accent); box-shadow: 0 0 10px rgba(0,255,65,0.6); }
+
+    /* ── Results ── */
+    .results { margin-top: 32px; display: none; }
+    .results.active { display: block; }
+
+    .grid {
+      display: grid; gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+    .card {
+      background: var(--panel); border: 1px solid var(--accent-2);
+      border-radius: var(--radius); padding: 16px;
+      box-shadow: 0 0 15px rgba(255,0,110,0.3);
+    }
+    .card .label {
+      font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--accent-2);
+      text-shadow: 0 0 6px rgba(255,0,110,0.4);
+    }
+    .card .value {
+      font-size: 26px; font-weight: 600; margin-top: 6px;
+      color: var(--fg);
+      text-shadow: 0 0 12px rgba(0,255,255,0.6);
+    }
+    .card .sub {
+      font-size: 12px; color: var(--accent-3); margin-top: 4px;
+      text-shadow: 0 0 6px rgba(0,255,255,0.3);
+    }
+    .card.accent .value  { color: var(--accent); text-shadow: 0 0 15px rgba(0,255,65,0.8); }
+    .card.accent2 .value { color: var(--accent-2); text-shadow: 0 0 15px rgba(255,0,110,0.8); }
+    .card.accent3 .value { color: var(--accent-3); text-shadow: 0 0 15px rgba(0,255,255,0.8); }
+
+    h2.section {
+      margin: 36px 0 16px; font-size: 16px; font-weight: 600;
+      color: var(--fg); letter-spacing: 0.01em;
+      display: flex; align-items: center; gap: 8px;
+      text-shadow: 0 0 12px rgba(0,255,255,0.6);
+    }
+    h2.section::before {
+      content: ""; width: 3px; height: 18px;
+      background: var(--accent); border-radius: 2px;
+      box-shadow: 0 0 12px rgba(0,255,65,0.8);
+    }
+
+    /* ── Preview frames carousel ── */
+    .preview-grid {
+      display: grid; gap: 14px;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+    .preview-card {
+      background: var(--panel); border: 1px solid var(--accent-3);
+      border-radius: var(--radius); overflow: hidden;
+      box-shadow: 0 0 20px rgba(0,255,255,0.4);
+    }
+    .preview-card img { width: 100%; display: block; }
+    .preview-card .meta {
+      padding: 10px 12px; font-family: var(--mono); font-size: 12px;
+      color: var(--muted); border-top: 1px solid var(--accent-3);
+    }
+    .preview-card .meta .ts {
+      color: var(--accent); font-weight: 600;
+      text-shadow: 0 0 8px rgba(0,255,65,0.5);
+    }
+    .chip {
+      display: inline-block; font-family: var(--mono); font-size: 11px;
+      padding: 1px 7px; border-radius: 99px;
+      margin: 2px 4px 0 0;
+    }
+    .chip.face { background: rgba(0,255,255,0.2); color: var(--accent-3); box-shadow: 0 0 8px rgba(0,255,255,0.4); }
+    .chip.obj  { background: rgba(255,0,110,0.2);  color: var(--accent-2); box-shadow: 0 0 8px rgba(255,0,110,0.4); }
+
+    /* ── Transcript ── */
+    .transcript-box {
+      background: var(--panel); border: 1px solid var(--accent-3);
+      border-radius: var(--radius); padding: 18px;
+      font-size: 14px; line-height: 1.7;
+      box-shadow: 0 0 15px rgba(0,255,255,0.3);
+    }
+    .transcript-box .lang {
+      font-family: var(--mono); font-size: 11px; color: var(--accent-2);
+      text-transform: uppercase; letter-spacing: 0.08em;
+      margin-bottom: 10px;
+      text-shadow: 0 0 8px rgba(255,0,110,0.5);
+    }
+    .transcript-box .full { color: var(--fg); }
+    .transcript-box .empty { color: var(--muted); font-style: italic; }
+    .segments {
+      margin-top: 18px; border-top: 1px solid var(--accent-3); padding-top: 14px;
+      max-height: 320px; overflow-y: auto;
+    }
+    .seg {
+      display: flex; gap: 12px; padding: 6px 0;
+      font-size: 13px; border-bottom: 1px dashed var(--accent-2);
+    }
+    .seg .t {
+      font-family: var(--mono); color: var(--accent); flex: 0 0 110px;
+      text-shadow: 0 0 8px rgba(0,255,65,0.5);
+    }
+    .seg .text { color: var(--fg); }
+
+    /* ── Timeline ── */
+    .timeline {
+      background: var(--panel); border: 1px solid var(--accent-2);
+      border-radius: var(--radius); padding: 14px;
+      max-height: 380px; overflow-y: auto;
+      box-shadow: 0 0 15px rgba(255,0,110,0.3);
+    }
+    .timeline-row {
+      display: grid; grid-template-columns: 80px 70px 70px 1fr;
+      gap: 12px; padding: 8px 6px; align-items: center;
+      border-bottom: 1px dashed var(--accent-2);
+      font-size: 13px;
+    }
+    .timeline-row:last-child { border-bottom: 0; }
+    .timeline-row .ts { font-family: var(--mono); color: var(--accent); text-shadow: 0 0 8px rgba(0,255,65,0.5); }
+    .timeline-row .pill {
+      font-family: var(--mono); font-size: 12px;
+      padding: 2px 8px; border-radius: 99px; text-align: center;
+    }
+    .timeline-row .pill.face { background: rgba(0,255,255,0.2); color: var(--accent-3); box-shadow: 0 0 8px rgba(0,255,255,0.4); }
+    .timeline-row .pill.obj  { background: rgba(255,0,110,0.2);  color: var(--accent-2); box-shadow: 0 0 8px rgba(255,0,110,0.4); }
+    .timeline-row .sub { color: var(--accent-3); font-size: 12px; font-style: italic; text-shadow: 0 0 6px rgba(0,255,255,0.3); }
+
+    /* ── Raw JSON ── */
+    details.json-raw summary {
+      cursor: pointer; padding: 10px 14px; background: var(--panel);
+      border: 1px solid var(--accent-2); border-radius: var(--radius);
+      font-family: var(--mono); font-size: 13px; color: var(--accent-2);
+      box-shadow: 0 0 10px rgba(255,0,110,0.3);
+    }
+    details.json-raw[open] summary { border-radius: var(--radius) var(--radius) 0 0; }
+    details.json-raw pre {
+      margin: 0; padding: 14px; background: #000a15;
+      border: 1px solid var(--accent-2); border-top: none;
+      border-radius: 0 0 var(--radius) var(--radius);
+      max-height: 480px; overflow: auto;
+      font-family: var(--mono); font-size: 12px;
+      color: #00ffff;
+      text-shadow: 0 0 5px rgba(0,255,255,0.4);
+    }
+
+    /* ── Error/empty states ── */
+    .error-box {
+      background: rgba(255,0,85,0.15); border: 1px solid var(--danger);
+      color: var(--danger); padding: 14px 18px; border-radius: var(--radius);
+      font-family: var(--mono); font-size: 13px; margin-top: 16px;
+      box-shadow: 0 0 20px rgba(255,0,85,0.4);
+      text-shadow: 0 0 8px rgba(255,0,85,0.5);
+    }
+
+    .meta-row {
+      font-family: var(--mono); font-size: 12px; color: var(--accent-2);
+      margin-top: 4px;
+      text-shadow: 0 0 6px rgba(255,0,110,0.3);
+    }
+    .meta-row b { color: var(--accent); font-weight: 600; text-shadow: 0 0 8px rgba(0,255,65,0.5); }
+
+    /* tiny screens */
+    @media (max-width: 560px) {
+      .container { padding: 20px 14px 60px; }
+      .page-shell { grid-template-columns: 1fr; }
+      .robot-rail { position: static; padding-top: 0; }
+      .robot-rail img { max-width: 240px; margin: 0 auto 10px; }
+      .robot-caption { max-width: 320px; margin: 0 auto 18px; text-align: center; }
+      .robot-models { max-width: 320px; margin: 0 auto 18px; }
+      header h1 { font-size: 18px; }
+      .dropzone { padding: 40px 16px; }
+      .timeline-row { grid-template-columns: 70px 60px 60px 1fr; font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="page-shell">
+      <aside class="robot-rail" aria-label="Robot mascot illustration">
+        <img src="/assets/neon_robot_1.png" alt="Robot mascot" />
+        <div class="robot-caption">
+          <strong>Multimodal AI analysis.</strong> Upload a video to detect faces, objects, and speech in one run.
+        </div>
+        <div class="robot-models" aria-label="Models used">
+          <span class="title">Models used</span>
+          <ul>
+            <li><span class="model">MediaPipe Face Detection</span> - finds faces in each frame.</li>
+            <li><span class="model">YOLOv8n</span> - detects objects and labels them.</li>
+            <li><span class="model">OpenAI Whisper</span> - transcribes speech from the audio track.</li>
+          </ul>
+        </div>
+      </aside>
+      <main class="main-column">
+        <header>
+          <div class="header-brand">
+            <div>
+            <h1>Multimodal Media Analysis</h1>
+            <div class="subtitle">Multimodal AI analysis · upload a video to get started</div>
+            </div>
+          </div>
+          <div class="api-badge" id="apiBadge">checking API…</div>
+        </header>
+
+        <!-- ── Upload ── -->
+        <section class="uploader">
+          <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload video">
+            <div class="big">Drop a video here, or click to choose</div>
+            <div class="small">Supported: <code>.mp4</code> · <code>.mov</code> · <code>.avi</code> · <code>.mkv</code> &nbsp;(up to 500&nbsp;MB)</div>
+            <input id="fileInput" type="file" accept="video/mp4,video/quicktime,video/x-msvideo,video/x-matroska,.mp4,.mov,.avi,.mkv" />
+          </div>
+          <div class="selected-file" id="selectedFile">No file selected.</div>
+
+          <div class="options">
+            <div class="opt">
+              <input id="optFaces" type="checkbox" checked />
+              <label for="optFaces">Face detection</label>
+            </div>
+            <div class="opt">
+              <input id="optObjects" type="checkbox" checked />
+              <label for="optObjects">Object detection</label>
+            </div>
+            <div class="opt">
+              <input id="optSpeech" type="checkbox" checked />
+              <label for="optSpeech">Speech recognition</label>
+            </div>
+            <div class="opt">
+              <button class="face-tune-btn" id="faceTuneBtn" type="button">Face model: Balanced</button>
+              <input id="faceConf" type="hidden" value="0.70" />
+            </div>
+            <div class="opt">
+              <label for="optConf">YOLO conf:</label>
+              <input id="optConf" type="number" min="0.1" max="0.95" step="0.05" value="0.40" />
+            </div>
+            <div class="opt">
+              <label for="optPreview">Preview frames:</label>
+              <input id="optPreview" type="number" min="1" max="20" step="1" value="6" />
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="btn btn-primary" id="runBtn" disabled>Analyze video</button>
+            <button class="btn btn-ghost"   id="resetBtn">Reset</button>
+          </div>
+        </section>
+
+        <!-- ── Progress ── -->
+        <section class="progress-card" id="progressCard">
+          <div class="card">
+            <div class="label">Analyzing</div>
+            <div class="value" id="progTitle" style="font-size:18px">Running multimodal pipeline…</div>
+            <div class="bar"><div class="fill"></div></div>
+            <div class="stages">
+              <span class="done">📁 upload</span>
+              <span id="stage-frames">🖼 frames</span>
+              <span id="stage-faces">👤 faces</span>
+              <span id="stage-objects">🟧 objects</span>
+              <span id="stage-speech">🗣 speech</span>
+              <span id="stage-merge">🧩 merge</span>
+            </div>
+            <div class="meta-row" id="elapsedRow">elapsed: 0.0s</div>
+          </div>
+        </section>
+
+        <!-- ── Error ── -->
+        <div id="errorBox" class="error-box" style="display:none"></div>
+
+        <!-- ── Results ── -->
+        <section class="results" id="results">
+          <h2 class="section">Summary</h2>
+          <div class="grid" id="summaryGrid"></div>
+
+          <h2 class="section">Annotated frames</h2>
+          <div class="preview-grid" id="previewGrid"></div>
+
+          <h2 class="section">Transcript</h2>
+          <div class="transcript-box" id="transcriptBox"></div>
+
+          <h2 class="section">Timeline</h2>
+          <div class="timeline" id="timelineBox"></div>
+
+          <!-- Diagnostics panel removed -->
+
+          <h2 class="section">Raw response</h2>
+          <details class="json-raw">
+            <summary>Show raw JSON (preview frames hidden for readability)</summary>
+            <pre id="rawJson"></pre>
+          </details>
+        </section>
+      </main>
+  </div>
+
+  <script>
+    // ── State ──────────────────────────────────────────────────────────────
+    let selectedFile = null;
+    let elapsedTimer = null;
+
+    const $ = (id) => document.getElementById(id);
+    const dropzone   = $("dropzone");
+    const fileInput  = $("fileInput");
+    const runBtn     = $("runBtn");
+    const resetBtn   = $("resetBtn");
+    const apiBadge   = $("apiBadge");
+    const selectedF  = $("selectedFile");
+    const progressC  = $("progressCard");
+    const errorBox   = $("errorBox");
+    const results    = $("results");
+    const faceTuneBtn = $("faceTuneBtn");
+    const faceConfInput = $("faceConf");
+
+    const facePresets = [
+      { label: "Strict", value: 0.80 },
+      { label: "Balanced", value: 0.70 },
+      { label: "Sensitive", value: 0.55 },
+    ];
+    let facePresetIndex = 1;
+
+    function syncFaceTuneButton() {
+      const preset = facePresets[facePresetIndex];
+      faceTuneBtn.textContent = `Face model: ${preset.label}`;
+      faceConfInput.value = String(preset.value.toFixed(2));
+    }
+    faceTuneBtn.addEventListener("click", () => {
+      facePresetIndex = (facePresetIndex + 1) % facePresets.length;
+      syncFaceTuneButton();
+    });
+    syncFaceTuneButton();
+
+    // ── API health check on load ───────────────────────────────────────────
+    async function pingApi() {
+      try {
+        const r = await fetch("/health");
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        const j = await r.json();
+        apiBadge.textContent = "API ok · " + Object.keys(j.models || {}).length + " models";
+        apiBadge.classList.add("ok");
+      } catch (e) {
+        apiBadge.textContent = "API offline";
+        apiBadge.classList.add("fail");
+      }
+    }
+    pingApi();
+
+    // ── File picking ───────────────────────────────────────────────────────
+    function setFile(file) {
+      if (!file) return;
+      selectedFile = file;
+      const sizeMB = (file.size / (1024*1024)).toFixed(1);
+      selectedF.innerHTML = `Selected: <b>${escapeHtml(file.name)}</b> · ${sizeMB} MB`;
+      runBtn.disabled = false;
+      errorBox.style.display = "none";
+    }
+
+    dropzone.addEventListener("click",  () => fileInput.click());
+    dropzone.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileInput.click(); }
+    });
+    fileInput.addEventListener("change", (e) => setFile(e.target.files[0]));
+
+    ["dragenter", "dragover"].forEach(ev =>
+      dropzone.addEventListener(ev, (e) => {
+        e.preventDefault(); e.stopPropagation();
+        dropzone.classList.add("drag");
+      })
+    );
+    ["dragleave", "drop"].forEach(ev =>
+      dropzone.addEventListener(ev, (e) => {
+        e.preventDefault(); e.stopPropagation();
+        dropzone.classList.remove("drag");
+      })
+    );
+    dropzone.addEventListener("drop", (e) => {
+      const f = e.dataTransfer?.files?.[0];
+      if (f) setFile(f);
+    });
+
+    resetBtn.addEventListener("click", () => location.reload());
+
+    // ── Analyze ────────────────────────────────────────────────────────────
+    runBtn.addEventListener("click", async () => {
+      if (!selectedFile) return;
+      runBtn.disabled = true;
+      results.classList.remove("active");
+      errorBox.style.display = "none";
+      progressC.classList.add("active");
+      startElapsed();
+      // Pseudo-stage progression — real pipeline doesn't stream, but this
+      // gives the user useful visual feedback.
+      bumpStage("stage-frames", 800);
+      bumpStage("stage-faces",  2400);
+      bumpStage("stage-objects", 4500);
+      bumpStage("stage-speech",  7000);
+      bumpStage("stage-merge",  10500);
+
+      const fd = new FormData();
+      fd.append("file", selectedFile);
+      fd.append("enable_faces",   $("optFaces").checked   ? "true" : "false");
+      fd.append("enable_objects", $("optObjects").checked ? "true" : "false");
+      fd.append("enable_speech",  $("optSpeech").checked  ? "true" : "false");
+      fd.append("face_conf",      $("faceConf").value);
+      fd.append("conf",           $("optConf").value);
+      fd.append("max_preview_frames", $("optPreview").value);
+
+      try {
+        const res = await fetch("/api/orchestrate", { method: "POST", body: fd });
+        const json = await res.json();
+        stopElapsed();
+        if (!res.ok || json.error) {
+          throw new Error(json.error + (json.details ? " — " + json.details : ""));
+        }
+        renderResults(json);
+      } catch (err) {
+        stopElapsed();
+        showError(err.message || String(err));
+      } finally {
+        progressC.classList.remove("active");
+        runBtn.disabled = false;
+      }
+    });
+
+    function bumpStage(id, after_ms) {
+      setTimeout(() => $(id)?.classList.add("done"), after_ms);
+    }
+
+    function startElapsed() {
+      const t0 = Date.now();
+      elapsedTimer = setInterval(() => {
+        const s = ((Date.now() - t0) / 1000).toFixed(1);
+        $("elapsedRow").textContent = "elapsed: " + s + "s";
+      }, 100);
+    }
+    function stopElapsed() {
+      if (elapsedTimer) clearInterval(elapsedTimer);
+      elapsedTimer = null;
+    }
+
+    function showError(msg) {
+      errorBox.textContent = "❌ " + msg;
+      errorBox.style.display = "block";
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;",
+      }[c]));
+    }
+
+    // ── Render ────────────────────────────────────────────────────────────
+    function renderResults(j) {
+      results.classList.add("active");
+      window.__lastResult__ = j; // for debugging in dev console
+
+      // Summary cards
+      const s = j.summary || {};
+      const meta = j.video_metadata || {};
+      const grid = $("summaryGrid");
+      grid.innerHTML = "";
+      const cards = [
+        { label: "Duration",          value: (meta.duration_sec ?? 0).toFixed(1) + "s",
+          sub: `${meta.width}×${meta.height} · ${(meta.fps ?? 0).toFixed(1)} fps` },
+        { label: "Frames analyzed",   value: s.frames_analyzed ?? 0,
+          sub: `of ${meta.total_frames} total`, cls: "accent" },
+        { label: "Faces detected",    value: s.total_faces_detected ?? 0,
+          sub: `in ${s.frames_with_faces ?? 0} frames`, cls: "accent3" },
+        { label: "Objects detected",  value: s.total_objects_detected ?? 0,
+          sub: `${(s.unique_object_classes||[]).length} unique classes · ${s.unique_object_tracks ?? 0} tracks`,
+          cls: "accent2" },
+        { label: "Transcript",        value: (s.transcript_word_count ?? 0) + " words",
+          sub: "language: " + (s.transcript_language || "n/a") },
+        { label: "Elapsed",           value: (j.elapsed_sec ?? 0).toFixed(1) + "s",
+          sub: "wall-clock pipeline time" },
+      ];
+      cards.forEach(c => {
+        const el = document.createElement("div");
+        el.className = "card " + (c.cls || "");
+        el.innerHTML = `
+          <div class="label">${escapeHtml(c.label)}</div>
+          <div class="value">${escapeHtml(String(c.value))}</div>
+          <div class="sub">${escapeHtml(c.sub)}</div>`;
+        grid.appendChild(el);
+      });
+
+      // Preview frames
+      const pg = $("previewGrid");
+      pg.innerHTML = "";
+      (j.preview_frames || []).forEach(pf => {
+        const el = document.createElement("div");
+        el.className = "preview-card";
+        const labelChips = (pf.object_labels || []).slice(0, 8)
+          .map(l => `<span class="chip obj">${escapeHtml(l)}</span>`).join("");
+        const faceChip = pf.num_faces > 0
+          ? `<span class="chip face">${pf.num_faces} face${pf.num_faces>1?"s":""}</span>` : "";
+        el.innerHTML = `
+          <img src="${pf.image_data_url}" alt="annotated frame at ${pf.t_sec}s" loading="lazy" />
+          <div class="meta">
+            <span class="ts">t = ${pf.t_sec}s</span> ·
+            <span>${pf.frame}</span><br>
+            ${faceChip} ${labelChips}
+          </div>`;
+        pg.appendChild(el);
+      });
+      if (!(j.preview_frames || []).length) {
+        pg.innerHTML = `<div class="card"><div class="sub">No preview frames produced.</div></div>`;
+      }
+
+      // Transcript
+      const tb = $("transcriptBox");
+      const tr = j.transcription || {};
+      const segs = tr.segments || [];
+      tb.innerHTML = `
+        <div class="lang">Language: ${escapeHtml(tr.language || "n/a")} ·
+            ${segs.length} segments · model: ${escapeHtml(tr.model || "n/a")}</div>
+        ${tr.full_text
+            ? `<div class="full">${escapeHtml(tr.full_text)}</div>`
+            : `<div class="empty">No speech transcribed (no audio track or speech disabled).</div>`}
+        ${segs.length ? `
+          <div class="segments">
+            ${segs.map(s => `
+              <div class="seg">
+                <div class="t">${(s.start_sec||0).toFixed(2)}s — ${(s.end_sec||0).toFixed(2)}s</div>
+                <div class="text">${escapeHtml(s.text || "")}</div>
+              </div>`).join("")}
+          </div>` : ""}
+      `;
+
+      // Timeline
+      const tl = $("timelineBox");
+      tl.innerHTML = "";
+      (j.timeline || []).forEach(row => {
+        const el = document.createElement("div");
+        el.className = "timeline-row";
+        el.innerHTML = `
+          <div class="ts">${row.t_sec.toFixed(2)}s</div>
+          <div class="pill face">${row.num_faces} face${row.num_faces===1?"":"s"}</div>
+          <div class="pill obj">${row.num_objects} obj</div>
+          <div>
+            ${row.subtitle
+              ? `<span>“${escapeHtml(row.subtitle)}”</span>`
+              : `<span class="sub">— ${(row.object_labels||[]).join(", ") || "no detections"}</span>`}
+          </div>`;
+        tl.appendChild(el);
+      });
+      if (!(j.timeline || []).length) {
+        tl.innerHTML = `<div class="sub" style="padding:10px">No timeline rows.</div>`;
+      }
+
+      // Raw JSON (with base64 images stripped)
+      const light = JSON.parse(JSON.stringify(j));
+      (light.preview_frames || []).forEach(p => p.image_data_url = "<base64 hidden>");
+      $("rawJson").textContent = JSON.stringify(light, null, 2);
+
+      // Diagnostics removed
+
+      results.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  </script>
+</body>
+</html>

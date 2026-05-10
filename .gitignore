@@ -1,0 +1,32 @@
+# Environment / secrets
+.env
+.env.*
+*.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+
+# Tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+
+# Generated runtime outputs
+processed/
+milestone2_results.json
+output_*.png
+
+# Mini-Milestone 3 generated deliverables
+mini_milestone_3/results/*.json
+mini_milestone_3/screenshots/*/*.png
